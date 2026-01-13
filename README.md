@@ -1,53 +1,304 @@
-> Edited for use in IDX on 07/09/12
+# E-Commerce Platform with Admin Panel and Mobile App
 
-# Welcome to your Expo app 👋
+A comprehensive e-commerce platform built with:
+- **Backend**: Cloudflare Workers, D1 Database, R2 Storage
+- **Admin Panel**: React with TypeScript
+- **Mobile App**: Expo (React Native) with TypeScript
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Features
 
-## Get started
+### For Sellers (Mobile App)
+- User registration with GST number (optional)
+- Shop document upload for KYC verification
+- Browse and search products by category
+- Add products to cart and place orders
+- Track order status
+- Profile management
 
-#### Android
+### For Admin (Web Panel)
+- Dashboard with statistics
+- Seller management and KYC verification
+- Product management (CRUD operations)
+- Order management and status updates
+- Category management
 
-Android previews are defined as a `workspace.onStart` hook and started as a vscode task when the workspace is opened/started.
+## Project Structure
 
-Note, if you can't find the task, either:
-- Rebuild the environment (using command palette: `IDX: Rebuild Environment`), or
-- Run `npm run android -- --tunnel` command manually run android and see the output in your terminal. The device should pick up this new command and switch to start displaying the output from it.
-
-In the output of this command/task, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You'll also find options to open the app's developer menu, reload the app, and more.
-
-#### Web
-
-Web previews will be started and managred automatically. Use the toolbar to manually refresh.
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+.
+├── backend/              # Cloudflare Workers backend
+│   ├── src/
+│   │   ├── index.ts     # Main API endpoints
+│   │   └── types.ts     # TypeScript types
+│   ├── schema.sql       # Database schema
+│   └── wrangler.jsonc   # Cloudflare configuration
+├── admin-panel/         # React admin panel
+│   └── src/
+│       ├── api/         # API client and services
+│       ├── components/  # Reusable components
+│       └── pages/       # Page components
+├── app/                 # Expo mobile app
+│   ├── (tabs)/         # Tab navigation screens
+│   ├── lib/            # API client and services
+│   └── store/          # State management (Zustand)
+└── README.md
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Prerequisites
 
-## Learn more
+- Node.js 18+ and npm
+- Cloudflare account (for Workers, D1, R2)
+- Expo CLI (for mobile development)
+- Git
 
-To learn more about developing your project with Expo, look at the following resources:
+## Setup Instructions
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 1. Backend Setup (Cloudflare Workers)
 
-## Join the community
+#### Install Dependencies
+```bash
+cd backend
+npm install
+```
 
-Join our community of developers creating universal apps.
+#### Configure Wrangler
+```bash
+# Login to Cloudflare
+npx wrangler login
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# Create D1 database
+npx wrangler d1 create ecommerce-db
+
+# Create R2 bucket
+npx wrangler r2 bucket create ecommerce-storage
+```
+
+Update [`backend/wrangler.jsonc`](backend/wrangler.jsonc) with your database and bucket IDs:
+```json
+{
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ecommerce-db",
+      "database_id": "YOUR_DATABASE_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "ecommerce-storage"
+    }
+  ]
+}
+```
+
+#### Initialize Database
+```bash
+# Apply schema to D1 database
+npx wrangler d1 execute ecommerce-db --local --file=./schema.sql
+```
+
+#### Run Locally
+```bash
+npm run dev
+```
+
+The API will be available at `http://localhost:8787`
+
+#### Deploy to Cloudflare
+```bash
+npm run deploy
+```
+
+### 2. Admin Panel Setup
+
+#### Install Dependencies
+```bash
+cd admin-panel
+npm install
+```
+
+#### Configure API URL
+Create a `.env` file in the `admin-panel` directory:
+```env
+REACT_APP_API_URL=http://localhost:8787
+```
+
+For production, use your deployed Cloudflare Workers URL.
+
+#### Run Development Server
+```bash
+npm start
+```
+
+The admin panel will be available at `http://localhost:3000`
+
+#### Build for Production
+```bash
+npm run build
+```
+
+### 3. Mobile App Setup (Expo)
+
+#### Install Dependencies
+```bash
+npm install
+```
+
+#### Configure API URL
+Create a `.env` file in the root directory:
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8787
+```
+
+For production, use your deployed Cloudflare Workers URL.
+
+#### Run Development Server
+```bash
+npm start
+```
+
+Press `i` to run on iOS simulator or `a` to run on Android emulator.
+
+#### Build for Production
+```bash
+# Build for iOS
+eas build --platform ios
+
+# Build for Android
+eas build --platform android
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /auth/register` - Register new seller
+- `POST /auth/login` - Login user
+- `GET /auth/user/:id` - Get user by ID
+
+### KYC Documents
+- `POST /kyc/upload` - Upload KYC document
+- `GET /kyc/user/:userId` - Get user's KYC documents
+- `GET /kyc/pending` - Get pending KYC documents (admin)
+- `POST /kyc/verify` - Approve/reject KYC document (admin)
+
+### Categories
+- `GET /categories` - Get all categories
+- `GET /categories/:id` - Get category by ID
+- `POST /categories` - Create category (admin)
+- `PUT /categories/:id` - Update category (admin)
+- `DELETE /categories/:id` - Delete category (admin)
+
+### Products
+- `GET /products` - Get all products (with optional filters)
+- `GET /products/:id` - Get product by ID
+- `POST /products` - Create product (admin)
+- `PUT /products/:id` - Update product (admin)
+- `DELETE /products/:id` - Delete product (admin)
+- `POST /products/upload-image` - Upload product image
+
+### Orders
+- `GET /orders` - Get all orders (with optional filters)
+- `GET /orders/:id` - Get order by ID with items
+- `POST /orders` - Create order
+- `PUT /orders/:id/status` - Update order status (admin)
+
+### Admin
+- `GET /admin/sellers` - Get all sellers
+- `GET /admin/pending-sellers` - Get pending sellers
+- `POST /admin/verify-seller` - Verify/reject seller (admin)
+- `GET /admin/dashboard` - Get dashboard statistics
+
+## Database Schema
+
+### Users Table
+- `id` (TEXT, PRIMARY KEY)
+- `name` (TEXT)
+- `email` (TEXT, UNIQUE)
+- `role` (TEXT: 'admin', 'seller')
+- `gst_no` (TEXT, optional)
+- `shop_name` (TEXT)
+- `address` (TEXT)
+- `status` (TEXT: 'pending', 'verified', 'rejected')
+- `created_at` (DATETIME)
+
+### Categories Table
+- `id` (TEXT, PRIMARY KEY)
+- `name` (TEXT)
+- `image_url` (TEXT)
+- `created_at` (DATETIME)
+
+### Products Table
+- `id` (TEXT, PRIMARY KEY)
+- `category_id` (TEXT, FOREIGN KEY)
+- `name` (TEXT)
+- `description` (TEXT)
+- `price` (REAL)
+- `unit` (TEXT)
+- `image_url` (TEXT)
+- `stock` (INTEGER)
+- `discount` (REAL)
+- `seller_id` (TEXT, FOREIGN KEY)
+- `created_at` (DATETIME)
+
+### KYC Documents Table
+- `id` (TEXT, PRIMARY KEY)
+- `user_id` (TEXT, FOREIGN KEY)
+- `document_type` (TEXT)
+- `document_url` (TEXT)
+- `status` (TEXT: 'pending', 'approved', 'rejected')
+
+### Orders Table
+- `id` (TEXT, PRIMARY KEY)
+- `user_id` (TEXT, FOREIGN KEY)
+- `total_amount` (REAL)
+- `status` (TEXT: 'pending', 'shipped', 'delivered', 'cancelled')
+- `created_at` (DATETIME)
+
+### Order Items Table
+- `id` (TEXT, PRIMARY KEY)
+- `order_id` (TEXT, FOREIGN KEY)
+- `product_id` (TEXT, FOREIGN KEY)
+- `quantity` (INTEGER)
+- `price` (REAL)
+
+## Default Admin Credentials
+
+For the admin panel, you can create an admin user by inserting directly into the database:
+
+```sql
+INSERT INTO users (id, name, email, role, status) 
+VALUES ('admin-001', 'Admin User', 'admin@example.com', 'admin', 'verified');
+```
+
+## Development Workflow
+
+1. Start the backend: `cd backend && npm run dev`
+2. Start the admin panel: `cd admin-panel && npm start`
+3. Start the mobile app: `npm start`
+
+## Troubleshooting
+
+### Backend Issues
+- Ensure Cloudflare Workers is running: `http://localhost:8787`
+- Check D1 database is properly configured in `wrangler.jsonc`
+- Verify R2 bucket is created and accessible
+
+### Admin Panel Issues
+- Clear browser cache if API calls fail
+- Check `REACT_APP_API_URL` in `.env` file
+- Ensure CORS is enabled in backend
+
+### Mobile App Issues
+- Ensure Expo development server is running
+- Check `EXPO_PUBLIC_API_URL` in `.env` file
+- Clear app cache if needed: `expo start -c`
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For issues and questions, please open an issue on the repository.
+# appjj
